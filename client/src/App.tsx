@@ -1,41 +1,105 @@
-import { useEffect, useState } from 'react'
-import './App.css'
-import Page1 from './page1'
-import Page2 from './page2'
+import { AlertCircleIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import AddProductForm from "./components/add-product-form";
+import { Alert, AlertDescription, AlertTitle } from "./components/ui/alert";
+import { Button } from "./components/ui/button";
+import DeleteProduct from "./components/ui/delete-product";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemTitle,
+} from "./components/ui/item";
 
 function App() {
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('default message')
-  const [triggerFetch, setTriggerFetch] = useState(false)
-  const [page, setPage] = useState('page1')
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [isError, setIsError] = useState(false);
+  const [data, setData] = useState([]);
+  const [triggerFetch, setTriggerFetch] = useState(false);
 
   const fetchFromServer = () => {
-    setLoading(true)
-    fetch('http://localhost:3000')
-      .then(response => response.json())
-      .then(data => setMessage(data.message))
+    setLoading(true);
+    setData([]);
+    setIsError(false);
+    fetch("http://localhost:3000/products")
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.status === "success") {
+          setData(data.data);
+        } else {
+          setIsError(true);
+        }
+        setMessage(data.message);
+      })
+      .catch((error) => {
+        setMessage(error.message);
+        setIsError(true);
+      })
       .finally(() => {
         setLoading(false);
         setTriggerFetch(false);
-      })
-  }
+      });
+  };
 
   useEffect(() => {
-    console.log('triggerFetch', triggerFetch)
+    console.log("triggerFetch", triggerFetch);
     if (triggerFetch) {
-      fetchFromServer()
+      fetchFromServer();
     }
-  }, [triggerFetch])
+  }, [triggerFetch]);
 
   return (
-    <div>
-      {loading ? <p>Loading...</p> : <p>{message}</p>}
-      <button onClick={() => setTriggerFetch(true)} disabled={loading}>Refresh</button>
-      <button onClick={() => setPage('page1')}>Page1</button>
-      <button onClick={() => setPage('page2')}>Page2</button>
-      {page === 'page1' ? <Page1 /> : <Page2 />}
+    <div className="flex flex-col items-center justify-center gap-4">
+      {loading ? <p>Loading...</p> : null}
+      <Button
+        onClick={() => setTriggerFetch(true)}
+        disabled={loading}
+        variant="default"
+      >
+        Refresh
+      </Button>
+
+      {isError ? (
+        <Alert variant="destructive">
+          <AlertCircleIcon />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{message}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {data.length > 0 ? (
+        <ItemGroup className="gap-2">
+          {data.map((product) => (
+            <Item key={product.id} variant="outline" size="sm">
+              <ItemActions>
+                <DeleteProduct
+                  id={product.id}
+                  fetchFromServer={fetchFromServer}
+                  setLoading={setLoading}
+                  setData={setData}
+                  setIsError={setIsError}
+                  setMessage={setMessage}
+                  setTriggerFetch={setTriggerFetch}
+                />
+              </ItemActions>
+              <ItemContent className="gap-1">
+                <ItemTitle>{product.name}</ItemTitle>
+                <ItemDescription>{product.description}</ItemDescription>
+              </ItemContent>
+              <ItemActions className="font-mono text-xs text-muted-foreground">
+                ${product.price}
+              </ItemActions>
+            </Item>
+          ))}
+        </ItemGroup>
+      ) : null}
+
+      <AddProductForm />
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
