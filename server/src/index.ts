@@ -2,10 +2,11 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import * as z from "zod";
+import { prisma } from "./lib/prisma";
 
 const addProductSchema = z.object({
   name: z.string("Name is required").min(2, "Should be >= 2 chars"),
-  price: z.number("Price is required").min(0, "Should be >= 0"),
+  price: z.coerce.number("Price is required").min(0, "Should be >= 0"),
   description: z
     .string("Description is required")
     .min(10, "Should be >= 10 chars"),
@@ -13,39 +14,12 @@ const addProductSchema = z.object({
 
 const app = new Hono();
 
-let products = [
-  {
-    id: 1,
-    name: "Product 1",
-    price: 100,
-    description: "Product 1 description",
-  },
-  {
-    id: 2,
-    name: "Product 2",
-    price: 200,
-    description: "Product 2 description",
-  },
-  {
-    id: 3,
-    name: "Product 3",
-    price: 300,
-    description: "Product 3 description",
-  },
-  {
-    id: 4,
-    name: "Product 4",
-    price: 400,
-    description: "Product 4 description",
-  },
-];
-
 app.use(cors());
 
 let numberOfRequests = 0;
 
 // list all products
-app.get("/products", (c) => {
+app.get("/products", async (c) => {
   numberOfRequests++;
 
   if (numberOfRequests > 100) {
@@ -53,16 +27,19 @@ app.get("/products", (c) => {
     return c.json(
       {
         data: [],
-        status: "error",
-        message: "Products fetch failed",
+        success: false,
+        message: "Too many requests",
       },
       429
     );
   }
+
+  const products = await prisma.product.findMany();
+
   return c.json(
     {
       data: products,
-      status: "success",
+      success: true,
       message: "Products fetched successfully",
     },
     200
@@ -76,25 +53,10 @@ app.delete("/products/:id", (c) => {
   // functional approach
   // products = products.filter((product) => product.id !== id);
 
-  // procedural approach
-  const productIndex = products.findIndex((product) => product.id === id);
-  if (productIndex === -1) {
-    return c.json(
-      {
-        data: [],
-        status: "error",
-        message: "Product not found",
-      },
-      404
-    );
-  } else {
-    products.splice(productIndex, 1);
-  }
-
   return c.json(
     {
       data: [],
-      status: "success",
+      success: true,
       message: "Product deleted successfully",
     },
     200
@@ -102,20 +64,21 @@ app.delete("/products/:id", (c) => {
 });
 
 // add a product
-app.post("/products", zValidator("json", addProductSchema), (c) => {
+app.post("/products", zValidator("json", addProductSchema), async (c) => {
   const { name, price, description } = c.req.valid("json");
 
-  products.push({
-    id: products.length + 1,
-    name,
-    price,
-    description,
+  await prisma.product.create({
+    data: {
+      name,
+      price,
+      description,
+    },
   });
 
   return c.json(
     {
       data: [],
-      status: "success",
+      success: true,
       message: "Product added successfully",
     },
     200

@@ -1,0 +1,46 @@
+name: spa-lab-2025-632
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_PASSWORD: root  # Env var for the container
+      POSTGRES_USER: admin
+      POSTGRES_DB: mydb
+    ports:
+      - "5432:5432"            # Maps Host:5432 -> Container:5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    ports:
+      - "8080:80"              # Access via http://localhost:8080
+    depends_on:
+      - postgres
+
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: mydb
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  pma:
+    image: phpmyadmin/phpmyadmin
+    environment:
+      PMA_HOST: mysql          # Service name used as hostname
+    ports:
+      - "8090:80"              # Access via http://localhost:8081
+    depends_on:
+      - mysql
+
+volumes:
+  pgdata:
+  mysql_data:
