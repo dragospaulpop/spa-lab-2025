@@ -47,11 +47,14 @@ app.get("/products", async (c) => {
 });
 
 // delete a product by id
-app.delete("/products/:id", (c) => {
-  const id = parseInt(c.req.param("id"));
+app.delete("/products/:id", async (c) => {
+  const id = c.req.param("id");
 
-  // functional approach
-  // products = products.filter((product) => product.id !== id);
+  await prisma.product.delete({
+    where: {
+      id,
+    },
+  });
 
   return c.json(
     {
@@ -86,3 +89,5 @@ app.post("/products", zValidator("json", addProductSchema), async (c) => {
 });
 
 export default app;
+
+

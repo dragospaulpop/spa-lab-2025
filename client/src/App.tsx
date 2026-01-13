@@ -13,11 +13,14 @@ import {
   ItemTitle,
 } from "./components/ui/item";
 
+import type { Product } from '../../server/src/lib/prisma';
+
+
 function App() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<Product[]>([]);
   const [triggerFetch, setTriggerFetch] = useState(false);
 
   const fetchFromServer = () => {
@@ -27,7 +30,7 @@ function App() {
     fetch("http://localhost:3000/products")
       .then((response) => response.json())
       .then((data) => {
-        if (data.status === "success") {
+        if (data.success) {
           setData(data.data);
         } else {
           setIsError(true);
